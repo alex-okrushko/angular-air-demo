@@ -1,32 +1,33 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DataService {
-  private cartItems: string[] = [];
+  private readonly cartItemsSubject = new BehaviorSubject<string[]>([]);
+  readonly cartItems$ = this.cartItemsSubject.asObservable();
 
-  list$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
-  private cartItemsSubject: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
-  cartItems$ = this.cartItemsSubject.asObservable();
+  constructor(private readonly http: HttpClient) {}
 
-
-  constructor(private http: HttpClient) {  }
-
-  getData() {
-    this.http.get('/assets/test-data/wine-list.json').subscribe((data: any) => {
-      this.list$.next(data);
-    });
+  getData(): Observable<string[]> {
+    return this.http.get<string[]>('/assets/test-data/wine-list.json');
   }
-  addTocart(item: string) {
-    this.cartItems.push(item);
-    this.cartItemsSubject.next([...this.cartItems]);
-
+  addToCart(item: string) {
+    this.cartItemsSubject.next([...this.cartItemsSubject.getValue(), item]);
   }
-  removeFromcart(index: any) {
-    this.cartItems.splice(index, 1);
-    this.cartItemsSubject.next(this.cartItems);
+  removeFromCart(removeIndex: number) {
+    // Option 1
+    // const cartItemsClone = [...this.cartItemsSubject.getValue()];
+    // cartItemsClone.splice(index, 1);
+    // this.cartItemsSubject.next(cartItemsClone);
+
+    // Option 2
+    this.cartItemsSubject.next(
+      this.cartItemsSubject
+        .getValue()
+        .filter((_, index) => index != removeIndex)
+    );
   }
 }
